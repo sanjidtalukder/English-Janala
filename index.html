@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        .btn.active {
+            background-color: #422AD5;
+            color: white;
+        }
+        #header {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    z-index: 1000; 
+}
+
+    </style>
+</head>
+
+<body>
+    <header id="header" class="bg-gray-100 border-b-1 border-gray-400">
+        <nav class="flex justify-between items-center w-11/12 mx-auto  py-3 ">
+            <div class="flex 
+           justify-center items-center">
+                <h1 class="font-bold">English</h1>
+                <img class="w-7 h-8" src="assets/logo.png" alt="">
+                <h1 class="font-bold">জানালা</h1>
+            </div>
+
+            <div>
+                <button id="scrollBtn"
+                    class="btn bg-white btn-outline btn-primary text-[#422AD5] hover:text-white hover:bg-[#422AD5]"><i class="fa-solid fa-circle-info"></i> FAQ</button>
+
+
+                <button id="scrollBtn-2"
+                    class="btn bg-white btn-outline btn-primary text-[#422AD5] hover:text-white hover:bg-[#422AD5]"><i class="fa-solid fa-book-open"></i>Learn</button>
+
+                <button onclick="reloadPage()"
+                    class="btn bg-white btn-outline btn-primary text-[#422AD5] hover:text-white hover:bg-[#422AD5]"><i class="fa-solid fa-right-from-bracket"></i>Logout</button>
+            </div>
+        </nav>
+    </header>
+
+    
+
+    <section id="baner-1" class="flex items-center justify-around mx-auto px-9 ">
+        <div>
+            <h1 class="font-bold pb-4 text-4xl"><span class="text-blue-400">English</span> is Easy!!</h1>
+            <p id="text" class="pb-4 font-bold">আজ থেকেই আপনার ভাষা শেখার যাত্রা শুরু করুন। আপনি যদি নতুন হন অথবা <br> আপনার
+                দক্ষতা বাড়াতে
+                চান, আমাদের Interactive Lessons আপনাকে নিয়ে যাবে অন্য একটি Level এ</p>
+
+            <form id="form" action="">
+                <label class="input validator mb-4">
+
+                    <input id="Username" type="input" required placeholder="Enter Your Name:" />
+                </label>
+                <br>
+                <label class="input validator mb-4">
+
+                    <input id="password" type="password" required placeholder="Password must be given (123456)" />
+                </label>
+                <br>
+                <button id="submit" class="btn btn-info text-white">Get Started</button>
+            </form>
+
+        </div>
+
+        <div>
+            <img src="assets/hero-student.png" alt="">
+        </div>
+    </section>
+
+    <section id="cards" class="mb-16">
+        <h1 class="text-2xl text-center mb-7 font-bold"><span class="text-blue-400">Let's</span> Learn Vocabularies
+        </h1>
+       
+        <nav id="btn-container" class="flex justify-center items-center gap-3 mb-8">
+
+
+        </nav>
+        
+
+        <div class="bg-[#F8F8F8] mx-16 rounded-lg">
+
+            <div id="nothing" class="text-center p-8 ">
+
+                    <div class="card-body">
+                        <p class="text-[#79716B] text-4xl">আপনি এখনো কোন Lesson Select করেন নাই</p>
+                        <p class="font-bold text-4xl">একটি Lesson Select করুন।</p>
+                       
+                    </div>
+
+            </div>
+
+        </div>
+
+        <div id="mess" class=" flex flex-col justify-center  items-center mx-auto text-center border-red-500">
+          </div>
+      
+        <div id="word-div" class="grid grid-cols-3 gap-3 p-4 bg-[#F8F8F8] mx-16 rounded-lg"> </div>
+       
+        <dialog id="my_modal_1" class="modal ">
+        </dialog>
+    </section>
+
+    <section id="section-question" class="mx-7 mb-32">
+
+        <h1 class="text-2xl text-center mb-20 font-bold"><span class="text-blue-400">Frequently</span>
+            Asked Questions
+        </h1>
+
+        <div tabindex="0" class="collapse collapse-plus bg-base-100 border-base-300 border mb-3 bg-gray-100">
+            <div class="collapse-title font-semibold">
+                <h1>1.The difference between var, let, and const.?</h1>
+            </div>
+            <div class="collapse-content text-sm">
+                <h2 class="text-sm">The difference between var,let and const</h2>
+                <h3 class="font-bold">Var:</h3>
+                <li>var is function-scoped, meaning it is accessible throughout the entire function in which it</li>
+                <li>Hoisting: Variables declared with var are hoisted to the top of their scope and initialized with</li>
+                <li>Re-declaration: You can re-declare a var in the same scope without errors.</li><br>
+                <h3 class="font-bold">let:</h3>
+                <li>Scope: let is block-scoped, meaning it is only accessible inside the block {} where it was declared.</li>
+                <li>Hoisting: Variables declared with let are hoisted but not initialized, so accessing them before declaration results in a ReferenceError.</li>
+                <li>Re-declaration: You cannot re-declare a let variable in the same scope.</li><br>
+                <h3 class="font-bold">Const</h3>
+                <li>Scope: Like let, const is block-scoped.</li>
+                <li>Hoisting: Also hoisted but not initialized.</li>
+                <li>Re-declaration: You cannot re-declare a const variable in the same scope.
+                </li>
+
+            </div>
+        </div>
+
+        <div tabindex="0" class="collapse collapse-plus bg-base-100 border-base-300 border mb-3 bg-gray-100">
+            <div class="collapse-title font-semibold">
+                <h1 class="text-sm">2.The difference between map(), forEach(), and
+                    filter().?</h1>
+                    </div>
+
+            <div class="collapse-content text-sm">
+                <h2>The difference between map, forEach and filter:</h2>
+                <h2 class="font-bold">map()</h2>
+                    <li>Purpose: Transforms each element of an array and returns a new array with the modified values.</li>
+                     <li> Returns: A new array with the transformed values.</li>  
+                        <li>Modifies the original array? ❌ No</li>
+
+                    <h2 class="font-bold">forEach()</h2>
+                    <li>Purpose: Loops through an array and executes a function for each element, but does not return a new array.</li>
+                     <li>Returns: undefined</li>  
+                     <li>Modifies the original array? ❌ No (unless modified manually)</li> 
+                    
+                     <h2 class="font-bold"> filter()</h2>
+                     <li>Purpose: Filters an array based on a condition and returns a new array with only the elements that match the condition.</li>
+                     <li>Returns: A new array with the filtered elements.</li>
+                     <li>Modifies the original array? ❌ No</li>
+            </div>
+        </div>
+
+        <div tabindex="0" class="collapse collapse-plus bg-base-100 border-base-300 border mb-3 bg-gray-100">
+            <div class="collapse-title font-semibold">
+                <h1>3.Explain arrow functions and how they are
+                    different from regular
+                    functions?</h1>
+                </div>
+            <div class="collapse-content text-sm">
+                <h1 class="font-bold">Arrow functions:</h1>
+                <p>
+                    <code>
+                    const multiply = (x, y) => x * y;
+                </code>
+                </p>
+
+                <br>
+
+                <h1 class="font-bold">Regular functions</h1>
+                <p>
+                    <code>
+                    function add(a, b) <br> { <br>
+                        return a + b; <br>
+                    }
+                </code>
+                </p>
+            </div>
+        </div>
+
+
+        <div tabindex="0" class="collapse collapse-plus bg-base-100 border-base-300 border mb-3 bg-gray-100">
+            <div class="collapse-title font-semibold">
+                <h1>4.How JavaScript Promises work?</h1></div>
+            <div class="collapse-content text-sm font-medium">
+                A Promise is created with a function that performs an asynchronous operation.
+                <br>
+                .then() is used to handle a fulfilled promise.
+                <br>
+                .catch() handles errors if the promise is rejected.
+            </div>
+        </div>
+        <div tabindex="0" class="collapse collapse-plus bg-base-100 border-base-300 border mb-3 bg-gray-100">
+            <div class="collapse-title font-semibold">
+                <h1>5.How closures work in JavaScript?</h1>
+            </div>
+            <div class="collapse-content text-sm font-medium">
+                A closure in JavaScript is a function that retains access to its lexical scope even
+                after the outer
+                function has finished executing. This is possible because functions in JavaScript
+                "remember" the scope
+                in which they were created.
+            </div>
+        </div>
+
+    </section>
+
+    <footer id="footer">
+        <footer class="footer flex justify-between border-t-2 border-[#FFEBEB] items-center p-10">
+            <div class="flex flex-col gap-0">
+                <div class="flex 
+            justify-center items-center">
+                    <h1 class="font-bold">English</h1>
+                    <img class="w-7 h-8" src="assets/logo.png" alt="">
+                    <h1 class="font-bold">জানালা</h1>
+                </div>
+                <br>
+                <h1 class="-mb-3 font-semibold">ইংরেজি শিখুন সহজে</h1>
+                <br>
+                <p>Providing ED-Tech Applications since 2025</p>
+            </div>
+
+            <div class="pr-12">
+                <h1 class="font-semibold">Follow us</h1>
+                <div class="flex gap-2 items-center">
+                    <img src="assets/fb-thumb.png" alt="">
+                    <img src="assets/youtube-thumb.png" alt="">
+                    <img src="assets/instagram-thumb.png" alt="">
+                    <img src="assets/github-thumb.png" alt="">
+                </div>
+            </div>
+
+        </footer>
+3          </footer>
+
+    <script src="logging.js"></script>
+    <script src="script.js"></script>
+    <!-- <script src="api2.js"></script> -->
+</body>
+
+</html>
