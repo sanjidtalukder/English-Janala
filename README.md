@@ -51,17 +51,15 @@ CDN:
 - Font Awesome 6.7
 - SweetAlert2 (for alert messages)
 
-🙋‍♂️ Author
+## 🙋‍♂️ Author
 
-Sanjid Talukder
+**Sanjid Talukder**  
+Junior Web Developer | CSE, Dhaka International University  
+GitHub link: https://github.com/sanjidtalukder?tab=repositories
 
-Junior Web Developer | CSE, Dhaka International University
-
-🔗 GitHub: https://github.com/sanjidtalukder
-
-✉️ Email: sanjidtalukder02@gmail.com
+---
 
 
-🎓 Guided By
+## 🎓 Guided By
 
 Inspired & structured under the guidance of Programming Hero
