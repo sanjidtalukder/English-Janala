@@ -1,54 +1,86 @@
+const authForm = document.getElementById("form");
+const authNameField = document.getElementById("auth-name-field");
+const authSubmit = document.getElementById("submit");
+const authModeSwitch = document.getElementById("auth-mode-switch");
+let isSignupMode = false;
+authNameField.classList.add("hidden");
+
 document.getElementById("footer").style.display = "block";
 document.getElementById("header").style.display = "none";
 document.getElementById("section-question").style.display = "none";
 document.getElementById("cards").style.display = "none";
 
-document.getElementById("submit").addEventListener("click", function (event) {
-    event.preventDefault();
-
-    const UserName = document.getElementById("Username").value;
-    const passWord = document.getElementById("password").value;
-
-    console.log(UserName)
-    const newpassWord = parseInt(passWord)
-
-    if (UserName !== "") {
-
-        if (newpassWord === 123456) {
-
-            // SweetAlert for successful login
-            Swal.fire({
-                position: "center",
-                icon: "success",
-                title: "Welcome to English জানালা",
-                showConfirmButton: false,
-                timer: 1600
-            });
-
-            document.getElementById("header").style.display = "block";
-            document.getElementById("header").style.display.position = "sticky";
-            document.getElementById("text").style.display = "none";
-            document.getElementById("form").innerHTML =
-                `<h1 class="text-2xl">
-                <span class="text-5xl font-bold bg-gradient-to-r from-red-500 to-blue-500 bg-clip-text text-transparent">${UserName}</span>
-                আপনাকে English জানালা'তে স্বাগতম
-                </h1>`;
-            document.getElementById("baner-1").style.display = "none";
-            document.getElementById("cards").style.display = "block";
-            document.getElementById("section-question").style.display = "block";
-            // document.getElementById("my_modal_2").showModal();
-
-        } else {
-            alert("Wrong password!");
-        }
-    } else {
-        alert("Please enter your name and password!");
-    }
-
-    document.getElementById("Username").value = "";
-    document.getElementById("password").value = "";
+authModeSwitch.addEventListener("click", () => {
+    isSignupMode = !isSignupMode;
+    authNameField.classList.toggle("hidden", !isSignupMode);
+    document.getElementById("auth-password").setAttribute("autocomplete", isSignupMode ? "new-password" : "current-password");
+    authSubmit.textContent = isSignupMode ? "অ্যাকাউন্ট তৈরি করুন" : "লগইন করুন";
+    authModeSwitch.textContent = isSignupMode ? "Login-এ ফিরে যান" : "নতুন account তৈরি করুন";
 });
 
-function reloadPage() {
+document.getElementById("demo-button").addEventListener("click", async () => {
+    const demoButton = document.getElementById("demo-button");
+    demoButton.disabled = true;
+    try {
+        await window.startDemoSession();
+        Swal.fire({ position: "center", icon: "success", title: "Demo mode", text: "এখানে আপনার পরিবর্তন শুধু এই browser-এ থাকবে।", showConfirmButton: false, timer: 1700 });
+    } catch (error) {
+        Swal.fire({ icon: "error", title: "Demo চালু হয়নি", text: error.message });
+    } finally {
+        demoButton.disabled = false;
+    }
+});
+
+authForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    authSubmit.disabled = true;
+    const payload = {
+        name: document.getElementById("auth-name").value.trim(),
+        email: document.getElementById("auth-email").value.trim(),
+        password: document.getElementById("auth-password").value,
+    };
+    try {
+        const response = await fetch(isSignupMode ? "/api/auth/signup" : "/api/auth/login", {
+            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Login করা যায়নি।");
+        await window.startLearningSession(result.user);
+        Swal.fire({ position: "center", icon: "success", title: `স্বাগতম, ${result.user.name}`, showConfirmButton: false, timer: 1400 });
+    } catch (error) {
+        Swal.fire({ icon: "error", title: "Login হয়নি", text: error.message });
+    } finally {
+        authSubmit.disabled = false;
+        document.getElementById("auth-password").value = "";
+    }
+});
+
+document.getElementById("logout-button").addEventListener("click", async () => {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     location.reload();
-}
+});
+
+(async function restoreSession() {
+    try {
+        const query = new URLSearchParams(location.search);
+        const tokenHash = query.get("token_hash");
+        const verificationType = query.get("type");
+        if (tokenHash && ["signup", "email"].includes(verificationType)) {
+            const verifyResponse = await fetch("/api/auth/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tokenHash, type: verificationType }) });
+            const verification = await verifyResponse.json();
+            history.replaceState({}, "", location.pathname);
+            if (!verifyResponse.ok) throw new Error(verification.error || "Email যাচাই করা যায়নি।");
+            await window.startLearningSession(verification.user);
+            Swal.fire({ icon: "success", title: "Email যাচাই হয়েছে", text: "আপনার account তৈরি হয়েছে।" });
+            return;
+        }
+        const response = await fetch("/api/auth/session");
+        if (!response.ok) return;
+        const result = await response.json();
+        await window.startLearningSession(result.user);
+    } catch (error) {
+        console.error("Session restore failed:", error);
+    }
+})();
+
+function reloadPage() { location.reload(); }

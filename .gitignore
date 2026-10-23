@@ -1,0 +1,5 @@
+.env
+node_modules/
+npm-debug.log*
+data/progress.json
+data/progress.json.tmp

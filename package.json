@@ -1,0 +1,13 @@
+{
+  "name": "english-janala",
+  "version": "1.0.0",
+  "private": true,
+  "description": "English Janala with a small OpenAI-backed learning API",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
