@@ -95,7 +95,26 @@ function applyWordFilters() {
     }
 }
 
+function getHighestUnlockedLesson() {
+    let maxCompleted = 0;
+    if (typeof LESSONS_DATABASE !== "undefined" && Array.isArray(LESSONS_DATABASE)) {
+        for (const lesson of LESSONS_DATABASE) {
+            const allDone = lesson.words && lesson.words.every(w => completedWordIds.has(String(w.id)));
+            if (allDone) {
+                if (lesson.id > maxCompleted) maxCompleted = lesson.id;
+            }
+        }
+    }
+    // Lesson 1 is always unlocked; completing lesson N unlocks N+1
+    return Math.min(60, maxCompleted + 1);
+}
+
 function loadCategories() {
+    if (typeof LESSONS_DATABASE !== "undefined" && Array.isArray(LESSONS_DATABASE) && LESSONS_DATABASE.length) {
+        window.lessonLevels = LESSONS_DATABASE;
+        displays(LESSONS_DATABASE);
+        return;
+    }
     fetch("https://openapi.programming-hero.com/api/levels/all")
         .then((res) => res.json())
         .then((data) => { window.lessonLevels = data.data || []; displays(data.data || []); })
@@ -115,10 +134,11 @@ async function getDictionaryEntry(word) {
     const definitions = entry.meanings.flatMap(meaning => meaning.definitions.map(definition => ({ ...definition, partOfSpeech: meaning.partOfSpeech })));
     const firstDef = definitions.find(d => d.definition && d.definition.length > 5)?.definition || definitions[0]?.definition || "Definition দেওয়া নেই";
     const mappedPron = COMMON_PRONUNCIATIONS[key] || entry.phonetic || "";
-    const displayMeaning = COMMON_BENGALI_MEANINGS[key] || firstDef;
+    const displayMeaning = COMMON_BENGALI_MEANINGS[key] || result.bengaliMeaning || firstDef;
     const item = {
         id: `dict:${key}`, word: entry.word || key,
         meaning: displayMeaning,
+        definition: firstDef,
         pronunciation: mappedPron, sentence: definitions.find(definition => definition.example)?.example || "",
         synonyms: [...new Set(definitions.flatMap(definition => definition.synonyms || []))].slice(0, 8),
         antonyms: [...new Set(definitions.flatMap(definition => definition.antonyms || []))].slice(0, 8),
@@ -209,6 +229,66 @@ async function saveDictionaryWord(item, topic = "My words") {
     if (!response.ok) throw new Error(result.error || "শব্দটি save হয়নি।");
 }
 
+function updateLessonBanner(lesson) {
+    const banner = document.getElementById("lesson-overview-banner");
+    if (!banner) return;
+    if (!lesson) {
+        banner.classList.add("hidden");
+        return;
+    }
+    banner.classList.remove("hidden");
+    const badge = document.getElementById("lesson-badge");
+    const title = document.getElementById("lesson-banner-title");
+    const subtitle = document.getElementById("lesson-banner-subtitle");
+    const progressText = document.getElementById("lesson-progress-text");
+    const progressBar = document.getElementById("lesson-progress-bar");
+    const completeBtn = document.getElementById("complete-lesson-btn");
+
+    const totalWords = lesson.words ? lesson.words.length : 10;
+    const completedCount = lesson.words ? lesson.words.filter(w => completedWordIds.has(String(w.id))).length : 0;
+    const isCompleted = completedCount >= totalWords;
+
+    if (badge) badge.textContent = `Lesson ${lesson.id || currentLessonNo}`;
+    if (title) title.textContent = `${lesson.title || ""} (${lesson.bnTitle || ""})`;
+    if (subtitle) subtitle.textContent = isCompleted ? "🎉 এই লেসনের সব শব্দ সফলভাবে সম্পন্ন হয়েছে!" : `এই লেসনের ${totalWords}টি শব্দ শিখে পরের লেসন আনলক করুন।`;
+    if (progressText) progressText.textContent = `${completedCount}/${totalWords} সম্পন্ন`;
+    if (progressBar) progressBar.style.width = `${Math.min(100, Math.round((completedCount / totalWords) * 100))}%`;
+
+    if (completeBtn) {
+        completeBtn.disabled = isCompleted;
+        completeBtn.innerHTML = isCompleted ? '<i class="fa-solid fa-check-double"></i> সম্পন্ন হয়েছে' : '<i class="fa-solid fa-circle-check"></i> সম্পন্ন করুন';
+        completeBtn.className = isCompleted 
+            ? "btn btn-sm bg-green-600 text-white border-none rounded-xl px-4 font-semibold shadow-xs flex items-center gap-1.5"
+            : "btn btn-sm bg-[#422AD5] hover:bg-[#341fb0] text-white border-none rounded-xl px-4 font-semibold shadow-xs flex items-center gap-1.5";
+        
+        completeBtn.onclick = async () => {
+            if (isCompleted) return;
+            completeBtn.disabled = true;
+            if (lesson.words) {
+                for (const w of lesson.words) {
+                    await saveCompletedWord(w.id, lesson.id, false);
+                }
+                await refreshDashboard();
+                renderLessonItems();
+                displays(window.lessonLevels || LESSONS_DATABASE);
+                updateLessonBanner(lesson);
+                
+                Swal.fire({
+                    icon: "success",
+                    title: `Lesson ${lesson.id} সম্পন্ন!`,
+                    text: lesson.id < 60 ? `অভিনন্দন! Lesson ${lesson.id + 1} আনলক হয়ে গেছে।` : "অভিনন্দন! আপনি সবগুলো ৬০টি লেসন শেষ করেছেন!",
+                    confirmButtonColor: "#422AD5",
+                    confirmButtonText: lesson.id < 60 ? `Lesson ${lesson.id + 1} শুরু করুন` : "অসাধারণ!"
+                }).then(res => {
+                    if (res.isConfirmed && lesson.id < 60) {
+                        loadLesson(lesson.id + 1);
+                    }
+                });
+            }
+        };
+    }
+}
+
 function displays(display) {
     const btnContainer = document.getElementById("btn-container");
     const mobileContainer = document.getElementById("mobile-lesson-container");
@@ -218,31 +298,57 @@ function displays(display) {
     btnContainer.innerHTML = "";  
     if (mobileContainer) mobileContainer.innerHTML = "";
 
-    const levels = display.length ? display : [{ level_no: 1, fallback: true }];
-    for (let dis of levels) {
-        const title = dis.fallback ? "Lesson 1 · Beginner" : `Lesson-${dis.level_no}`;
+    const highestUnlocked = getHighestUnlockedLesson();
+    const levels = (Array.isArray(display) && display.length) ? display : (typeof LESSONS_DATABASE !== "undefined" ? LESSONS_DATABASE : [{ level_no: 1, id: 1, title: "Lesson 1" }]);
+
+    for (const dis of levels) {
+        const lessonId = Number(dis.id || dis.level_no);
+        const isUnlocked = lessonId <= highestUnlocked;
+        const totalWords = dis.words ? dis.words.length : 10;
+        const completedCount = dis.words ? dis.words.filter(w => completedWordIds.has(String(w.id))).length : 0;
+        const isCompleted = dis.words && completedCount >= totalWords;
+
+        const title = dis.bnTitle ? `L-${lessonId}: ${dis.bnTitle}` : `Lesson-${lessonId}`;
         
         // Desktop / Tablet Button
         const btnDiv = document.createElement("div");
-        btnDiv.innerHTML = `
-            <button class="btn bg-white btn-outline btn-primary text-[#422AD5] hover:text-white hover:bg-[#422AD5]" data-level-no="${dis.level_no}">
-                <i class="fa-solid fa-book-open"></i>${title}
-            </button>
-        `;
-        if (dis.fallback) btnDiv.querySelector("button").dataset.topicNo = "1";
-        
-        const button = btnDiv.querySelector("button");
+        const button = document.createElement("button");
+        button.dataset.levelNo = String(lessonId);
+
+        if (isCompleted) {
+            button.className = "btn btn-sm bg-green-50 text-green-700 border-green-300 hover:bg-green-100 rounded-xl font-semibold gap-1.5";
+            button.innerHTML = `<i class="fa-solid fa-circle-check text-green-600"></i> ${escapeHTML(title)}`;
+        } else if (isUnlocked) {
+            button.className = "btn btn-sm bg-white btn-outline text-[#422AD5] border-[#422AD5] hover:bg-[#422AD5] hover:text-white rounded-xl font-semibold gap-1.5";
+            button.innerHTML = `<i class="fa-solid fa-book-open"></i> ${escapeHTML(title)}`;
+        } else {
+            button.className = "btn btn-sm bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed rounded-xl font-medium gap-1.5 opacity-70";
+            button.innerHTML = `<i class="fa-solid fa-lock text-gray-400"></i> ${escapeHTML(title)}`;
+            button.title = `Lesson ${lessonId - 1} সম্পন্ন করে এই লেসনটি আনলক করুন`;
+        }
+
         const triggerLesson = () => {
+            if (!isUnlocked) {
+                Swal.fire({
+                    icon: "info",
+                    title: `Lesson ${lessonId} লক করা রয়েছে 🔒`,
+                    text: `এই লেসনে যাওয়ার আগে অনুগ্রহ করে Lesson ${lessonId - 1}-এর শব্দগুলো সম্পন্ন করুন।`,
+                    confirmButtonColor: "#422AD5",
+                    confirmButtonText: "ঠিক আছে"
+                });
+                return;
+            }
             document.querySelectorAll("#btn-container button, #mobile-lesson-container button").forEach(btn => btn.classList.remove("active"));
             document.getElementById("nothing").style.display = "none";
             button.classList.add("active");
             if (mobileBtn) mobileBtn.classList.add("active");
             if (mobileLabel) mobileLabel.textContent = title;
             if (mobileCollapse) mobileCollapse.removeAttribute("open");
-            if (dis.fallback) loadTopicLesson({ id: 1, title: "Lesson 1 · Beginner", difficulty: "সহজ", words: TOPIC_LESSONS[0].words });
-            else loadLesson(dis.level_no);
+            loadLesson(lessonId);
         };
+
         button.addEventListener("click", triggerLesson);
+        btnDiv.append(button);
         btnContainer.append(btnDiv);
 
         // Mobile Hamburger Dropdown Button
@@ -250,42 +356,18 @@ function displays(display) {
         if (mobileContainer) {
             mobileBtn = document.createElement("button");
             mobileBtn.type = "button";
-            mobileBtn.className = "btn btn-sm bg-white btn-outline text-[#422AD5] hover:bg-[#422AD5] hover:text-white w-full text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 py-2";
-            mobileBtn.dataset.levelNo = String(dis.level_no);
-            mobileBtn.innerHTML = `<i class="fa-solid fa-book-open text-xs"></i> <span>${title}</span>`;
+            mobileBtn.dataset.levelNo = String(lessonId);
+            if (isCompleted) {
+                mobileBtn.className = "btn btn-sm bg-green-50 text-green-700 border-green-200 hover:bg-green-100 w-full text-xs font-semibold rounded-xl flex items-center justify-start gap-1.5 py-2 px-2.5";
+                mobileBtn.innerHTML = `<i class="fa-solid fa-circle-check text-green-600 text-xs"></i> <span class="truncate">${escapeHTML(title)}</span>`;
+            } else if (isUnlocked) {
+                mobileBtn.className = "btn btn-sm bg-white btn-outline text-[#422AD5] hover:bg-[#422AD5] hover:text-white w-full text-xs font-semibold rounded-xl flex items-center justify-start gap-1.5 py-2 px-2.5";
+                mobileBtn.innerHTML = `<i class="fa-solid fa-book-open text-xs"></i> <span class="truncate">${escapeHTML(title)}</span>`;
+            } else {
+                mobileBtn.className = "btn btn-sm bg-gray-100 text-gray-400 border-gray-200 w-full text-xs font-medium rounded-xl flex items-center justify-start gap-1.5 py-2 px-2.5 opacity-70";
+                mobileBtn.innerHTML = `<i class="fa-solid fa-lock text-gray-400 text-xs"></i> <span class="truncate">${escapeHTML(title)}</span>`;
+            }
             mobileBtn.addEventListener("click", triggerLesson);
-            mobileContainer.append(mobileBtn);
-        }
-    }
-
-    for (const topic of TOPIC_LESSONS) {
-        const triggerTopic = () => {
-            document.querySelectorAll("#btn-container button, #mobile-lesson-container button").forEach(btn => btn.classList.remove("active"));
-            document.getElementById("nothing").style.display = "none";
-            button.classList.add("active");
-            if (mobileBtn) mobileBtn.classList.add("active");
-            if (mobileLabel) mobileLabel.textContent = topic.title;
-            if (mobileCollapse) mobileCollapse.removeAttribute("open");
-            loadTopicLesson(topic);
-        };
-
-        // Desktop
-        const button = document.createElement("button");
-        button.className = "btn bg-white btn-outline btn-primary text-[#422AD5] hover:bg-[#422AD5] hover:text-white";
-        button.dataset.topicNo = String(topic.id);
-        button.innerHTML = `<i class="fa-solid fa-layer-group" aria-hidden="true"></i>${escapeHTML(topic.title)}`;
-        button.addEventListener("click", triggerTopic);
-        btnContainer.append(button);
-
-        // Mobile
-        let mobileBtn = null;
-        if (mobileContainer) {
-            mobileBtn = document.createElement("button");
-            mobileBtn.type = "button";
-            mobileBtn.className = "btn btn-sm bg-white btn-outline text-[#422AD5] hover:bg-[#422AD5] hover:text-white w-full text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 py-2 col-span-2";
-            mobileBtn.dataset.topicNo = String(topic.id);
-            mobileBtn.innerHTML = `<i class="fa-solid fa-layer-group text-xs" aria-hidden="true"></i> <span>${escapeHTML(topic.title)}</span>`;
-            mobileBtn.addEventListener("click", triggerTopic);
             mobileContainer.append(mobileBtn);
         }
     }
@@ -293,6 +375,7 @@ function displays(display) {
     const triggerSaved = () => {
         document.querySelectorAll("#btn-container button, #mobile-lesson-container button").forEach(btn => btn.classList.remove("active"));
         document.getElementById("nothing").style.display = "none";
+        updateLessonBanner(null);
         savedButton.classList.add("active");
         if (mobileSavedBtn) mobileSavedBtn.classList.add("active");
         if (mobileLabel) mobileLabel.textContent = "My Words";
@@ -302,9 +385,9 @@ function displays(display) {
 
     // Desktop
     const savedButton = document.createElement("button");
-    savedButton.className = "btn bg-green-50 text-green-800 hover:bg-green-100";
+    savedButton.className = "btn btn-sm bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 rounded-xl font-semibold";
     savedButton.dataset.savedWords = "true";
-    savedButton.innerHTML = '<i class="fa-solid fa-bookmark" aria-hidden="true"></i>My Words';
+    savedButton.innerHTML = '<i class="fa-solid fa-bookmark" aria-hidden="true"></i> My Words';
     savedButton.addEventListener("click", triggerSaved);
     btnContainer.append(savedButton);
 
@@ -313,7 +396,7 @@ function displays(display) {
     if (mobileContainer) {
         mobileSavedBtn = document.createElement("button");
         mobileSavedBtn.type = "button";
-        mobileSavedBtn.className = "btn btn-sm bg-green-50 text-green-800 hover:bg-green-100 w-full text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 py-2 col-span-2";
+        mobileSavedBtn.className = "btn btn-sm bg-amber-50 text-amber-800 hover:bg-amber-100 w-full text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 py-2 col-span-2";
         mobileSavedBtn.dataset.savedWords = "true";
         mobileSavedBtn.innerHTML = '<i class="fa-solid fa-bookmark text-xs" aria-hidden="true"></i> <span>My Words</span>';
         mobileSavedBtn.addEventListener("click", triggerSaved);
@@ -321,32 +404,47 @@ function displays(display) {
     }
 
     if (window.pendingDefaultLesson) {
-        const defaultButton = btnContainer.querySelector(`button[data-level-no="${window.pendingDefaultLesson}"]`);
-        if (defaultButton) {
-            window.pendingDefaultLesson = null;
-            defaultButton.click();
-        }
+        const targetLevel = window.pendingDefaultLesson;
+        window.pendingDefaultLesson = null;
+        loadLesson(targetLevel);
     }
 }
 
 document.getElementById("scrollBtn").addEventListener("click", function() {
     let targetSection = document.getElementById("section-question");
     if (targetSection) {
-        targetSection.scrollIntoView({ behavior: "smooth" }); // Smooth scrolling effect
+        targetSection.scrollIntoView({ behavior: "smooth" });
     }
 });
-
 
 document.getElementById("scrollBtn-2").addEventListener("click", function() {
     let targetSection = document.getElementById("cards");
     if (targetSection) {
-        targetSection.scrollIntoView({ behavior: "smooth" }); // Smooth scrolling effect
+        targetSection.scrollIntoView({ behavior: "smooth" });
     }
 });
 
-
 const loadLesson = (id) => {
     currentLessonNo = Number(id);
+
+    // Check if lesson exists in local database
+    if (typeof LESSONS_DATABASE !== "undefined" && Array.isArray(LESSONS_DATABASE)) {
+        const found = LESSONS_DATABASE.find(l => l.id === currentLessonNo);
+        if (found) {
+            document.getElementById("nothing").style.display = "none";
+            currentLessonItems = found.words;
+            found.words.forEach(item => wordCache.set(String(item.id), item));
+            renderLessonItems();
+            updateLessonBanner(found);
+
+            // Highlight active button
+            document.querySelectorAll("#btn-container button, #mobile-lesson-container button").forEach(btn => {
+                const isActive = Number(btn.dataset.levelNo) === currentLessonNo;
+                btn.classList.toggle("active", isActive);
+            });
+            return;
+        }
+    }
 
     const naimdiv = document.getElementById("word-div");
     naimdiv.innerHTML = `
@@ -354,8 +452,7 @@ const loadLesson = (id) => {
             <span class="loading loading-dots loading-lg"></span>
             <span class="loading loading-dots loading-lg"></span>
         </div>
-    `; // Show loading before fetching
-
+    `;
 
     fetch(`https://openapi.programming-hero.com/api/level/${id}`)
         .then(response => response.json())
@@ -365,12 +462,12 @@ const loadLesson = (id) => {
             
             if (!data.data || data.data.length === 0) {
                 naimdiv.innerHTML = `<div class="flex flex-col justify-center col-span-3 text-center">
-        <div class="flex justify-center">
-            <img src="assets/alert-error.png" alt="">
-        </div>      
-        <h1 class="text-[#79716B] text-xl">এই Lesson এ এখনো কোন Vocabulary যুক্ত করা হয়নি।</h1>
-        <h1 class="font-bold pb-4 text-4xl">নেক্সট Lesson এ যান</h1>
-    </div>`;
+                    <div class="flex justify-center">
+                        <img src="assets/alert-error.png" alt="">
+                    </div>      
+                    <h1 class="text-[#79716B] text-xl">এই Lesson এ এখনো কোন Vocabulary যুক্ত করা হয়নি।</h1>
+                    <h1 class="font-bold pb-4 text-4xl">নেক্সট Lesson এ যান</h1>
+                </div>`;
                 return;
             }
             document.getElementById("nothing").style.display = "none";
@@ -379,7 +476,7 @@ const loadLesson = (id) => {
             renderLessonItems();
         })
         .catch(error => console.error('Error fetching the lesson data:', error));
-}
+};
 
 function renderLessonItems() {
     const container = document.getElementById("word-div");
@@ -681,6 +778,59 @@ const showDictionaryDetails = (item, lessonNo) => {
 const fetchWords = (wordId, cardElement, lessonNo) => {
     const cachedItem = wordCache.get(String(wordId));
     if (cachedItem?.dictionary) return showDictionaryDetails(cachedItem, lessonNo);
+
+    // If word is in local LESSONS_DATABASE or already loaded
+    if (cachedItem && cachedItem.word) {
+        const modal = document.getElementById("my_modal_1");
+        modal.innerHTML = "";
+        const exampleSentence = cachedItem.sentence || "";
+        const diadiv = document.createElement("div");
+        diadiv.className = "modal-box text-left";
+        diadiv.innerHTML = `
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold">${escapeHTML(cachedItem.word)}</h2>
+                    <p class="text-gray-600"><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i> ${escapeHTML(cachedItem.pronunciation || "উচ্চারণ দেওয়া নেই")}</p>
+                </div>
+                <button type="button" id="modal-pronunciation-button" class="btn btn-square" aria-label="Listen to ${escapeHTML(cachedItem.word)}" title="শব্দটির উচ্চারণ শুনুন">
+                    <i class="fa-solid fa-volume-high" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="mt-4 space-y-4">
+                <section class="rounded-lg bg-[#EDF7FF] p-4">
+                    <h3 class="font-bold text-gray-800 mb-1">বাংলা অর্থ</h3>
+                    <p class="text-lg font-semibold text-[#422AD5]">${escapeHTML(cachedItem.meaning || "অর্থ দেওয়া নেই")}</p>
+                </section>
+                <section class="rounded-lg border border-gray-200 p-4">
+                    <h3 class="font-bold text-gray-800 mb-1">উদাহরণ বাক্য</h3>
+                    <p class="text-gray-700">${escapeHTML(exampleSentence || "উদাহরণ দেওয়া নেই")}</p>
+                </section>
+                <section class="rounded-lg bg-[#F8F8FC] p-4">
+                    <h3 class="font-bold text-gray-800">অনুশীলনের বাক্য ও কথোপকথন</h3>
+                    <div id="generated-sentences" class="mt-2 space-y-2">
+                        <p class="text-sm text-gray-600">AI থেকে অনুশীলনের বাক্য তৈরি হচ্ছে...</p>
+                    </div>
+                    <div id="generated-conversation" class="mt-3 space-y-2"></div>
+                </section>
+            </div>
+            <div class="modal-action flex flex-wrap justify-end gap-2">
+                <button type="button" id="cancel-learning-button" class="btn">বন্ধ করুন</button>
+                <button type="button" id="complete-learning-button" class="btn px-4 text-white bg-[#422AD5]">Complete Learning</button>
+            </div>
+        `;
+
+        diadiv.querySelector("#modal-pronunciation-button").addEventListener("click", () => speakWord(cachedItem.word));
+        diadiv.querySelector("#cancel-learning-button").addEventListener("click", closeModal);
+        diadiv.querySelector("#complete-learning-button").addEventListener("click", () => {
+            saveCompletedWord(cachedItem.id, lessonNo);
+            closeModal();
+        });
+        modal.append(diadiv);
+        if (!modal.open) modal.showModal();
+        loadWordPractice(cachedItem);
+        return;
+    }
+
     const modal = document.getElementById("my_modal_1");
     modal.innerHTML = `
         <div class="modal-box text-center">
@@ -790,7 +940,7 @@ const closeModal = () => {
     document.getElementById("my_modal_1").close();
 }
 
-async function saveCompletedWord(wordId, lessonNo) {
+async function saveCompletedWord(wordId, lessonNo, refreshUI = true) {
     if (!activeUser) return;
     try {
         if (activeUser.isDemo) {
@@ -802,8 +952,15 @@ async function saveCompletedWord(wordId, lessonNo) {
                 activities.push({ date: new Date().toISOString().slice(0, 10), event_type: "word_completed" });
                 localStorage.setItem(DEMO_ACTIVITY_KEY, JSON.stringify(activities));
             }
-            await refreshDashboard();
-            renderLessonItems();
+            if (refreshUI) {
+                await refreshDashboard();
+                renderLessonItems();
+                if (typeof LESSONS_DATABASE !== "undefined") {
+                    const currentLesson = LESSONS_DATABASE.find(l => l.id === Number(lessonNo));
+                    if (currentLesson) updateLessonBanner(currentLesson);
+                    displays(window.lessonLevels || LESSONS_DATABASE);
+                }
+            }
             return;
         }
         const response = await fetch("/api/progress", {
@@ -814,10 +971,17 @@ async function saveCompletedWord(wordId, lessonNo) {
         const result = await response.json();
         if (!response.ok) throw new Error(result.error || "Progress save failed");
         if (!completedWordIds.has(String(wordId))) completedWordIds.add(String(wordId));
-        await Promise.all([loadProgress(), refreshDashboard()]);
-        renderLessonItems();
+        if (refreshUI) {
+            await Promise.all([loadProgress(), refreshDashboard()]);
+            renderLessonItems();
+            if (typeof LESSONS_DATABASE !== "undefined") {
+                const currentLesson = LESSONS_DATABASE.find(l => l.id === Number(lessonNo));
+                if (currentLesson) updateLessonBanner(currentLesson);
+                displays(window.lessonLevels || LESSONS_DATABASE);
+            }
+        }
     } catch (error) {
-        Swal.fire({ icon: "error", title: "Progress save হয়নি", text: error.message });
+        if (refreshUI) Swal.fire({ icon: "error", title: "Progress save হয়নি", text: error.message });
     }
 }
 
@@ -905,11 +1069,23 @@ async function loadKnownWords() {
         if (response.ok) savedRows = result.words || [];
     }
     const savedById = new Map(savedRows.map(row => [String(row.word_id), row.word_data]));
-    const lessonNos = [...new Set(completedWordRows.map(row => Number(row.lesson_no)).filter(level => level <= 10))];
-    const responses = await Promise.all(lessonNos.map(level => fetch(`https://openapi.programming-hero.com/api/level/${level}`).then(res => res.json()).catch(() => ({ data: [] }))));
     const byId = new Map();
-    for (const response of responses) for (const item of response.data || []) byId.set(String(item.id), item);
-    return completedWordRows.map(row => ({ ...byId.get(String(row.word_id)), ...savedById.get(String(row.word_id)), ...row, word_id: String(row.word_id) })).filter(item => item.word && item.meaning);
+
+    // Load from local LESSONS_DATABASE
+    if (typeof LESSONS_DATABASE !== "undefined" && Array.isArray(LESSONS_DATABASE)) {
+        for (const lesson of LESSONS_DATABASE) {
+            for (const item of lesson.words || []) {
+                byId.set(String(item.id), item);
+            }
+        }
+    }
+
+    return completedWordRows.map(row => ({
+        ...byId.get(String(row.word_id)),
+        ...savedById.get(String(row.word_id)),
+        ...row,
+        word_id: String(row.word_id)
+    })).filter(item => item.word && item.meaning);
 }
 
 function shuffle(items) { return [...items].sort(() => Math.random() - 0.5); }

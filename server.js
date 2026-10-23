@@ -335,11 +335,25 @@ async function fetchFromWiktionary(word) {
     }];
 }
 
+async function translateToBengali(word) {
+    try {
+        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=bn&dt=t&q=${encodeURIComponent(word)}`, {
+            signal: AbortSignal.timeout(5000),
+            headers: { "User-Agent": "EnglishJanala/1.0" }
+        });
+        if (!res.ok) return "";
+        const data = await res.json();
+        return (data?.[0]?.[0]?.[0] || "").trim();
+    } catch {
+        return "";
+    }
+}
+
 async function handleDictionary(request, response, url) {
     const word = (url.searchParams.get("word") || "").trim().toLowerCase();
     if (!/^[a-z][a-z'-]{0,59}$/.test(word)) return sendJson(response, 400, { error: "একটি সঠিক English word লিখুন।" });
     const cached = dictionaryCache.get(word);
-    if (cached && Date.now() - cached.at < 24 * 60 * 60 * 1000) return sendJson(response, 200, { entry: cached.entry, cached: true });
+    if (cached && Date.now() - cached.at < 24 * 60 * 60 * 1000) return sendJson(response, 200, { entry: cached.entry, bengaliMeaning: cached.bengaliMeaning, cached: true });
 
     try {
         let entry = null;
@@ -365,9 +379,11 @@ async function handleDictionary(request, response, url) {
             return sendJson(response, 404, { error: "এই শব্দের dictionary entry পাওয়া যায়নি। বানানটি পরীক্ষা করে আবার চেষ্টা করুন।" });
         }
 
-        dictionaryCache.set(word, { entry, at: Date.now() });
+        const bengaliMeaning = await translateToBengali(word);
+
+        dictionaryCache.set(word, { entry, bengaliMeaning, at: Date.now() });
         if (dictionaryCache.size > 500) dictionaryCache.delete(dictionaryCache.keys().next().value);
-        return sendJson(response, 200, { entry, cached: false });
+        return sendJson(response, 200, { entry, bengaliMeaning, cached: false });
     } catch {
         return sendJson(response, 503, { error: "Dictionary service-এ সংযোগ হচ্ছে না। Internet পরীক্ষা করে আবার চেষ্টা করুন।" });
     }

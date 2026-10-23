@@ -237,6 +237,29 @@
             </div>
         </div>
 
+        <!-- Lesson Header with Topic Title & Progress -->
+        <div id="lesson-overview-banner" class="hidden mb-6 mx-1 sm:mx-2 bg-gradient-to-r from-[#422AD5]/10 via-[#422AD5]/5 to-transparent border border-[#422AD5]/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span id="lesson-badge" class="badge badge-primary text-xs font-bold px-2.5 py-1">Lesson 1</span>
+                    <h2 id="lesson-banner-title" class="text-lg sm:text-xl font-bold text-gray-800">Greetings & Basics</h2>
+                </div>
+                <p id="lesson-banner-subtitle" class="text-xs sm:text-sm text-gray-600 mt-1">এই লেসনের সব শব্দ শিখে পরের লেসন আনলক করুন!</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <span id="lesson-progress-text" class="text-xs font-semibold text-gray-700">0/10 সম্পন্ন</span>
+                    <div class="w-28 sm:w-36 h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
+                        <div id="lesson-progress-bar" class="h-full bg-green-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+                <button id="complete-lesson-btn" class="btn btn-sm bg-[#422AD5] hover:bg-[#341fb0] text-white border-none rounded-xl px-4 font-semibold shadow-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>সম্পন্ন করুন</span>
+                </button>
+            </div>
+        </div>
+
         <div id="mess" class="flex flex-col justify-center items-center mx-auto text-center"></div>
       
         <div id="word-div" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4 p-2 sm:p-5 bg-transparent rounded-2xl"></div>
@@ -331,6 +354,7 @@
         </div>
     </footer>
 
+    <script src="lessons_data.js"></script>
     <script src="logging.js"></script>
     <script src="script.js"></script>
 </body>
