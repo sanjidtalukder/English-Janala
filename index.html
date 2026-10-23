@@ -57,14 +57,73 @@
             }
         }
         #word-div .card.completed-card {
-            background-color: #dcfce7;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
             border: 2px solid #22c55e;
+            box-shadow: 0 4px 14px rgba(34, 197, 94, 0.15);
         }
         #header {
             position: sticky;
             top: 0;
             width: 100%;
             z-index: 1000;
+        }
+
+        /* Cyber-Portal Game Interface Styles - Harmonious Light Purple Theme */
+        .portal-orb {
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .portal-orb:hover {
+            transform: translateY(-4px) scale(1.04);
+        }
+        .portal-active {
+            box-shadow: 0 0 0 3px rgba(66, 42, 213, 0.3), 0 10px 25px -4px rgba(66, 42, 213, 0.25);
+            animation: portalPulseLight 2s infinite alternate;
+        }
+        @keyframes portalPulseLight {
+            0% { box-shadow: 0 0 0 3px rgba(66, 42, 213, 0.25), 0 6px 18px rgba(66, 42, 213, 0.15); }
+            100% { box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.35), 0 12px 28px rgba(66, 42, 213, 0.3); }
+        }
+        .portal-completed {
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.15);
+        }
+        .portal-locked {
+            opacity: 0.7;
+        }
+        .portal-locked:hover {
+            animation: portalShake 0.4s ease-in-out;
+        }
+        @keyframes portalShake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-3px); }
+            40%, 80% { transform: translateX(3px); }
+        }
+        .realm-tab.active-realm {
+            background: linear-gradient(135deg, #422AD5 0%, #5B43EA 100%);
+            color: #ffffff !important;
+            box-shadow: 0 6px 18px rgba(66, 42, 213, 0.25);
+            border-color: transparent !important;
+        }
+        .realm-tab.active-realm .realm-name {
+            color: #ffffff !important;
+        }
+        .realm-tab.active-realm .realm-sub {
+            color: #e0e7ff !important;
+        }
+        /* Custom scrollbar for horizontal realm roadmap */
+        .portal-track::-webkit-scrollbar {
+            height: 6px;
+        }
+        .portal-track::-webkit-scrollbar-track {
+            background: #eef2ff;
+            border-radius: 999px;
+        }
+        .portal-track::-webkit-scrollbar-thumb {
+            background: #c7d2fe;
+            border-radius: 999px;
+        }
+        .portal-track::-webkit-scrollbar-thumb:hover {
+            background: #a5b4fc;
         }
     </style>
 </head>
@@ -183,48 +242,72 @@
             <span class="text-[#422AD5]">Let's</span> Learn Vocabularies
         </h1>
        
-        <!-- Mobile Lesson Selector (Hamburger / Collapse Menu for Mobile) -->
-        <div class="sm:hidden mb-6 px-2 w-full max-w-md mx-auto">
-            <details id="mobile-lesson-collapse" class="collapse collapse-arrow bg-white border border-gray-200 rounded-2xl shadow-xs">
-                <summary class="collapse-title font-bold text-gray-800 flex items-center justify-between text-base py-3">
-                    <span class="flex items-center gap-2">
-                        <i class="fa-solid fa-bars text-[#422AD5]"></i>
-                        <span id="mobile-current-lesson-label">Lesson বা Topic নির্বাচন করুন</span>
-                    </span>
-                </summary>
-                <div class="collapse-content pt-2 pb-3 border-t border-gray-100">
-                    <div id="mobile-lesson-container" class="grid grid-cols-2 gap-2 mt-2">
-                        <!-- Populated dynamically via JS -->
+        <!-- Game Quest Map: 4 Floating Realms & Harmonious Light Purple Design -->
+        <div id="game-realm-wrapper" class="mb-8 w-full max-w-6xl mx-auto bg-gradient-to-b from-[#FAF5FF] via-white to-[#F8F9FD] p-4 sm:p-6 rounded-3xl shadow-sm border border-purple-100">
+            <!-- Player HUD Header & Integrated Search -->
+            <div class="flex flex-col lg:flex-row items-center justify-between pb-4 border-b border-purple-100 gap-3">
+                <div class="flex items-center gap-3 w-full lg:w-auto">
+                    <div class="w-10 h-10 rounded-2xl bg-[#422AD5] text-white flex items-center justify-center shadow-md shadow-[#422AD5]/20 flex-shrink-0">
+                        <i class="fa-solid fa-gamepad text-lg"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base sm:text-lg font-extrabold tracking-tight text-gray-900 flex items-center gap-2">
+                            <span>VOCAB QUEST REALMS</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider bg-purple-100 text-[#422AD5] px-2 py-0.5 rounded-full border border-purple-200">Season 1</span>
+                        </h2>
+                        <p class="text-xs text-gray-500">৬০টি পোর্টাল জয় করে ইংরেজি শব্দভান্ডারে মাস্টারি অর্জন করুন</p>
                     </div>
                 </div>
-            </details>
-        </div>
 
-        <!-- Desktop & Tablet Button Container (Hidden on small mobile screens) -->
-        <nav id="btn-container" class="hidden sm:flex flex-wrap justify-center items-center gap-2 sm:gap-3 mb-6 sm:mb-8 px-2">
-        </nav>
-
-        <!-- Unified Smart Search Bar (Fully Mobile & Tablet Optimized) -->
-        <div class="mx-auto mb-6 flex flex-col items-center gap-3 w-full max-w-2xl px-2">
-            <form id="dictionary-search-form" class="flex flex-col sm:flex-row w-full items-stretch sm:items-center gap-2">
-                <div class="relative w-full">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
-                        <i class="fa-solid fa-magnifying-glass"></i>
+                <!-- Integrated Compact Search Form -->
+                <form id="dictionary-search-form" class="w-full lg:w-80 flex items-center relative my-1 lg:my-0">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
                     </span>
-                    <input id="word-search" class="input input-bordered w-full pl-10 pr-4 rounded-xl shadow-xs focus:border-[#422AD5] text-sm sm:text-base h-11 sm:h-12" type="search" placeholder="যেকোনো English word খুঁজুন (যেমন: love, success)..." aria-label="শব্দ খুঁজুন" />
+                    <input id="word-search" class="input input-sm input-bordered w-full pl-8 pr-16 rounded-xl bg-white text-xs sm:text-sm focus:border-[#422AD5] border-gray-200 h-9" type="search" placeholder="যেকোনো English word খুঁজুন..." aria-label="শব্দ খুঁজুন" />
+                    <button class="btn btn-xs bg-[#422AD5] hover:bg-[#341fb0] text-white absolute right-1 rounded-lg px-2.5 h-7 border-none font-semibold text-xs" type="submit">
+                        খুঁজুন
+                    </button>
+                </form>
+
+                <!-- HUD Stats Chips -->
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap justify-center w-full lg:w-auto">
+                    <div class="bg-amber-50 border border-amber-200/80 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-amber-800 shadow-xs">
+                        <i class="fa-solid fa-trophy text-amber-600"></i>
+                        <span id="hud-completed-stat">0 / 60 Portals</span>
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-200/80 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold text-emerald-800 shadow-xs">
+                        <i class="fa-solid fa-star text-emerald-600"></i>
+                        <span id="hud-xp-stat">0 XP</span>
+                    </div>
+                    <button id="hud-my-words-btn" type="button" class="btn btn-xs bg-purple-50 text-[#422AD5] border border-purple-200 hover:bg-[#422AD5] hover:text-white rounded-xl font-bold px-3">
+                        <i class="fa-solid fa-bookmark mr-1"></i> My Words
+                    </button>
                 </div>
-                <button class="btn bg-[#422AD5] hover:bg-[#341fb0] text-white px-6 rounded-xl shadow-xs flex items-center justify-center gap-2 h-11 sm:h-12 border-none font-semibold text-sm sm:text-base" type="submit">
-                    <i class="fa-solid fa-magnifying-glass text-xs sm:text-sm"></i>
-                    <span>খুঁজুন</span>
-                </button>
-            </form>
-            <div class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 self-center sm:self-end">
-                <span class="font-medium">ফিল্টার:</span>
-                <select id="word-filter" class="select select-bordered select-xs sm:select-sm rounded-lg" aria-label="শব্দের অবস্থা বাছুন">
-                    <option value="all">সব শব্দ</option>
-                    <option value="incomplete">শেখা বাকি</option>
-                    <option value="completed">সম্পন্ন</option>
-                </select>
+            </div>
+
+            <!-- 4 Realm Tabs (Floating Islands Switcher) -->
+            <div id="realm-tabs-container" class="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 my-4">
+                <!-- Populated dynamically via JS -->
+            </div>
+
+            <!-- Active Realm Portal Map Track (Horizontal Carousel / Node Grid) -->
+            <div class="relative mt-2 p-3 sm:p-5 bg-white border border-purple-100 rounded-2xl shadow-xs">
+                <div class="flex items-center justify-between mb-3 px-1">
+                    <div class="flex items-center gap-2">
+                        <span id="active-realm-icon" class="text-base">🌱</span>
+                        <span id="active-realm-name" class="text-xs sm:text-sm font-extrabold tracking-wide uppercase text-gray-800">Genesis Island</span>
+                        <span id="active-realm-progress" class="text-[11px] text-gray-500 font-semibold">(0/15 Unlocked)</span>
+                    </div>
+                    <span class="text-[11px] text-[#422AD5] hidden sm:inline-flex items-center gap-1 font-semibold">
+                        <i class="fa-solid fa-angles-right text-[10px]"></i> পোর্টালে ক্লিক করে লেসন শুরু করুন
+                    </span>
+                </div>
+
+                <!-- Portal Nodes Container -->
+                <div id="portal-nodes-track" class="portal-track flex items-stretch gap-3 overflow-x-auto pb-3 pt-1 px-1">
+                    <!-- Populated dynamically: 15 portals per realm -->
+                </div>
             </div>
         </div>
 
@@ -237,8 +320,8 @@
             </div>
         </div>
 
-        <!-- Lesson Header with Topic Title & Progress -->
-        <div id="lesson-overview-banner" class="hidden mb-6 mx-1 sm:mx-2 bg-gradient-to-r from-[#422AD5]/10 via-[#422AD5]/5 to-transparent border border-[#422AD5]/20 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <!-- Lesson Header with Topic Title, Filter & Progress -->
+        <div id="lesson-overview-banner" class="hidden mb-6 mx-1 sm:mx-2 bg-gradient-to-r from-purple-50 via-white to-purple-50/30 border border-purple-200/70 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
             <div>
                 <div class="flex items-center gap-2">
                     <span id="lesson-badge" class="badge badge-primary text-xs font-bold px-2.5 py-1">Lesson 1</span>
@@ -246,10 +329,18 @@
                 </div>
                 <p id="lesson-banner-subtitle" class="text-xs sm:text-sm text-gray-600 mt-1">এই লেসনের সব শব্দ শিখে পরের লেসন আনলক করুন!</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 flex-wrap sm:flex-nowrap justify-between sm:justify-end">
+                <div class="flex items-center gap-1.5 text-xs text-gray-600">
+                    <span class="font-semibold text-gray-500">ফিল্টার:</span>
+                    <select id="word-filter" class="select select-bordered select-xs rounded-lg bg-white border-purple-200 text-xs" aria-label="শব্দের অবস্থা বাছুন">
+                        <option value="all">সব শব্দ</option>
+                        <option value="incomplete">শেখা বাকি</option>
+                        <option value="completed">সম্পন্ন</option>
+                    </select>
+                </div>
                 <div class="text-right">
                     <span id="lesson-progress-text" class="text-xs font-semibold text-gray-700">0/10 সম্পন্ন</span>
-                    <div class="w-28 sm:w-36 h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
+                    <div class="w-24 sm:w-32 h-2 bg-gray-200 rounded-full overflow-hidden mt-1">
                         <div id="lesson-progress-bar" class="h-full bg-green-500 rounded-full transition-all duration-300" style="width: 0%"></div>
                     </div>
                 </div>

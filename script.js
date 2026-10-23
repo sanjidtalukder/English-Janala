@@ -289,118 +289,175 @@ function updateLessonBanner(lesson) {
     }
 }
 
+const GAME_REALMS = [
+    { id: 1, name: "Genesis Island", icon: "🌱", subtitle: "শুরুর শব্দ ও পরিচয়", start: 1, end: 15, theme: "from-emerald-900/40 to-teal-900/30 border-emerald-500/30" },
+    { id: 2, name: "Neon Metropolis", icon: "🏙️", subtitle: "শহর, প্রযুক্তি ও অফিস", start: 16, end: 30, theme: "from-cyan-900/40 to-blue-900/30 border-cyan-500/30" },
+    { id: 3, name: "Crystal Peaks", icon: "⚡", subtitle: "ক্যারিয়ার, বিজ্ঞান ও আইন", start: 31, end: 45, theme: "from-purple-900/40 to-indigo-900/30 border-purple-500/30" },
+    { id: 4, name: "Mastery Citadel", icon: "👑", subtitle: "ঐতিহ্য ও কোর্স সমাপনী", start: 46, end: 60, theme: "from-amber-900/40 to-orange-900/30 border-amber-500/30" }
+];
+
+let activeRealmId = 1;
+
 function displays(display) {
-    const btnContainer = document.getElementById("btn-container");
-    const mobileContainer = document.getElementById("mobile-lesson-container");
-    const mobileLabel = document.getElementById("mobile-current-lesson-label");
-    const mobileCollapse = document.getElementById("mobile-lesson-collapse");
+    const realmTabsContainer = document.getElementById("realm-tabs-container");
+    const portalTrack = document.getElementById("portal-nodes-track");
+    const activeRealmIcon = document.getElementById("active-realm-icon");
+    const activeRealmName = document.getElementById("active-realm-name");
+    const activeRealmProgress = document.getElementById("active-realm-progress");
+    const hudCompleted = document.getElementById("hud-completed-stat");
+    const hudXP = document.getElementById("hud-xp-stat");
+    const myWordsBtn = document.getElementById("hud-my-words-btn");
 
-    btnContainer.innerHTML = "";  
-    if (mobileContainer) mobileContainer.innerHTML = "";
-
-    const highestUnlocked = getHighestUnlockedLesson();
-    const levels = (Array.isArray(display) && display.length) ? display : (typeof LESSONS_DATABASE !== "undefined" ? LESSONS_DATABASE : [{ level_no: 1, id: 1, title: "Lesson 1" }]);
-
-    for (const dis of levels) {
-        const lessonId = Number(dis.id || dis.level_no);
-        const isUnlocked = lessonId <= highestUnlocked;
-        const totalWords = dis.words ? dis.words.length : 10;
-        const completedCount = dis.words ? dis.words.filter(w => completedWordIds.has(String(w.id))).length : 0;
-        const isCompleted = dis.words && completedCount >= totalWords;
-
-        const title = dis.bnTitle ? `L-${lessonId}: ${dis.bnTitle}` : `Lesson-${lessonId}`;
-        
-        // Desktop / Tablet Button
-        const btnDiv = document.createElement("div");
-        const button = document.createElement("button");
-        button.dataset.levelNo = String(lessonId);
-
-        if (isCompleted) {
-            button.className = "btn btn-sm bg-green-50 text-green-700 border-green-300 hover:bg-green-100 rounded-xl font-semibold gap-1.5";
-            button.innerHTML = `<i class="fa-solid fa-circle-check text-green-600"></i> ${escapeHTML(title)}`;
-        } else if (isUnlocked) {
-            button.className = "btn btn-sm bg-white btn-outline text-[#422AD5] border-[#422AD5] hover:bg-[#422AD5] hover:text-white rounded-xl font-semibold gap-1.5";
-            button.innerHTML = `<i class="fa-solid fa-book-open"></i> ${escapeHTML(title)}`;
-        } else {
-            button.className = "btn btn-sm bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed rounded-xl font-medium gap-1.5 opacity-70";
-            button.innerHTML = `<i class="fa-solid fa-lock text-gray-400"></i> ${escapeHTML(title)}`;
-            button.title = `Lesson ${lessonId - 1} সম্পন্ন করে এই লেসনটি আনলক করুন`;
-        }
-
-        const triggerLesson = () => {
-            if (!isUnlocked) {
-                Swal.fire({
-                    icon: "info",
-                    title: `Lesson ${lessonId} লক করা রয়েছে 🔒`,
-                    text: `এই লেসনে যাওয়ার আগে অনুগ্রহ করে Lesson ${lessonId - 1}-এর শব্দগুলো সম্পন্ন করুন।`,
-                    confirmButtonColor: "#422AD5",
-                    confirmButtonText: "ঠিক আছে"
-                });
-                return;
-            }
-            document.querySelectorAll("#btn-container button, #mobile-lesson-container button").forEach(btn => btn.classList.remove("active"));
+    if (myWordsBtn) {
+        myWordsBtn.onclick = () => {
             document.getElementById("nothing").style.display = "none";
-            button.classList.add("active");
-            if (mobileBtn) mobileBtn.classList.add("active");
-            if (mobileLabel) mobileLabel.textContent = title;
-            if (mobileCollapse) mobileCollapse.removeAttribute("open");
-            loadLesson(lessonId);
+            updateLessonBanner(null);
+            document.querySelectorAll(".portal-orb").forEach(el => el.classList.remove("portal-active"));
+            loadSavedWords();
         };
-
-        button.addEventListener("click", triggerLesson);
-        btnDiv.append(button);
-        btnContainer.append(btnDiv);
-
-        // Mobile Hamburger Dropdown Button
-        let mobileBtn = null;
-        if (mobileContainer) {
-            mobileBtn = document.createElement("button");
-            mobileBtn.type = "button";
-            mobileBtn.dataset.levelNo = String(lessonId);
-            if (isCompleted) {
-                mobileBtn.className = "btn btn-sm bg-green-50 text-green-700 border-green-200 hover:bg-green-100 w-full text-xs font-semibold rounded-xl flex items-center justify-start gap-1.5 py-2 px-2.5";
-                mobileBtn.innerHTML = `<i class="fa-solid fa-circle-check text-green-600 text-xs"></i> <span class="truncate">${escapeHTML(title)}</span>`;
-            } else if (isUnlocked) {
-                mobileBtn.className = "btn btn-sm bg-white btn-outline text-[#422AD5] hover:bg-[#422AD5] hover:text-white w-full text-xs font-semibold rounded-xl flex items-center justify-start gap-1.5 py-2 px-2.5";
-                mobileBtn.innerHTML = `<i class="fa-solid fa-book-open text-xs"></i> <span class="truncate">${escapeHTML(title)}</span>`;
-            } else {
-                mobileBtn.className = "btn btn-sm bg-gray-100 text-gray-400 border-gray-200 w-full text-xs font-medium rounded-xl flex items-center justify-start gap-1.5 py-2 px-2.5 opacity-70";
-                mobileBtn.innerHTML = `<i class="fa-solid fa-lock text-gray-400 text-xs"></i> <span class="truncate">${escapeHTML(title)}</span>`;
-            }
-            mobileBtn.addEventListener("click", triggerLesson);
-            mobileContainer.append(mobileBtn);
-        }
     }
 
-    const triggerSaved = () => {
-        document.querySelectorAll("#btn-container button, #mobile-lesson-container button").forEach(btn => btn.classList.remove("active"));
-        document.getElementById("nothing").style.display = "none";
-        updateLessonBanner(null);
-        savedButton.classList.add("active");
-        if (mobileSavedBtn) mobileSavedBtn.classList.add("active");
-        if (mobileLabel) mobileLabel.textContent = "My Words";
-        if (mobileCollapse) mobileCollapse.removeAttribute("open");
-        loadSavedWords();
-    };
+    const highestUnlocked = getHighestUnlockedLesson();
+    const allLessons = (typeof LESSONS_DATABASE !== "undefined" && Array.isArray(LESSONS_DATABASE)) ? LESSONS_DATABASE : [];
 
-    // Desktop
-    const savedButton = document.createElement("button");
-    savedButton.className = "btn btn-sm bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 rounded-xl font-semibold";
-    savedButton.dataset.savedWords = "true";
-    savedButton.innerHTML = '<i class="fa-solid fa-bookmark" aria-hidden="true"></i> My Words';
-    savedButton.addEventListener("click", triggerSaved);
-    btnContainer.append(savedButton);
+    // Calculate overall stats for HUD
+    let totalCompletedLessons = 0;
+    allLessons.forEach(lesson => {
+        const isDone = lesson.words && lesson.words.every(w => completedWordIds.has(String(w.id)));
+        if (isDone) totalCompletedLessons++;
+    });
 
-    // Mobile
-    let mobileSavedBtn = null;
-    if (mobileContainer) {
-        mobileSavedBtn = document.createElement("button");
-        mobileSavedBtn.type = "button";
-        mobileSavedBtn.className = "btn btn-sm bg-amber-50 text-amber-800 hover:bg-amber-100 w-full text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 py-2 col-span-2";
-        mobileSavedBtn.dataset.savedWords = "true";
-        mobileSavedBtn.innerHTML = '<i class="fa-solid fa-bookmark text-xs" aria-hidden="true"></i> <span>My Words</span>';
-        mobileSavedBtn.addEventListener("click", triggerSaved);
-        mobileContainer.append(mobileSavedBtn);
+    if (hudCompleted) hudCompleted.textContent = `${totalCompletedLessons} / 60 Portals`;
+    if (hudXP) hudXP.textContent = `${completedWordIds.size * 10} XP`;
+
+    // Automatically select the realm corresponding to current highest unlocked lesson if initial
+    if (!window.hasInitializedRealm) {
+        window.hasInitializedRealm = true;
+        const currentRealm = GAME_REALMS.find(r => highestUnlocked >= r.start && highestUnlocked <= r.end) || GAME_REALMS[0];
+        activeRealmId = currentRealm.id;
+    }
+
+    // Render 4 Realm Switcher Tabs
+    if (realmTabsContainer) {
+        realmTabsContainer.innerHTML = "";
+        GAME_REALMS.forEach(realm => {
+            const isCurrentTab = realm.id === activeRealmId;
+            const realmLessons = allLessons.filter(l => l.id >= realm.start && l.id <= realm.end);
+            const unlockedInRealm = realmLessons.filter(l => l.id <= highestUnlocked).length;
+            const completedInRealm = realmLessons.filter(l => l.words && l.words.every(w => completedWordIds.has(String(w.id)))).length;
+
+            const tab = document.createElement("button");
+            tab.type = "button";
+            tab.className = `realm-tab flex flex-col p-3 rounded-2xl border transition-all text-left relative overflow-hidden ${
+                isCurrentTab 
+                    ? "active-realm" 
+                    : "bg-white border-purple-100 text-gray-700 hover:bg-purple-50/50 hover:border-purple-200 shadow-xs"
+            }`;
+
+            tab.innerHTML = `
+                <div class="flex items-center justify-between w-full">
+                    <span class="text-xl">${realm.icon}</span>
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                        isCurrentTab
+                            ? "bg-white/20 text-white"
+                            : completedInRealm === 15 
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                            : "bg-purple-50 text-[#422AD5]"
+                    }">
+                        ${completedInRealm}/15
+                    </span>
+                </div>
+                <div class="realm-name mt-2 font-bold text-xs sm:text-sm text-gray-800">${escapeHTML(realm.name)}</div>
+                <div class="realm-sub text-[11px] text-gray-500 truncate mt-0.5">${escapeHTML(realm.subtitle)}</div>
+            `;
+
+            tab.addEventListener("click", () => {
+                activeRealmId = realm.id;
+                displays(allLessons);
+            });
+            realmTabsContainer.append(tab);
+        });
+    }
+
+    // Active Realm Info in Track Header
+    const currentRealm = GAME_REALMS.find(r => r.id === activeRealmId) || GAME_REALMS[0];
+    if (activeRealmIcon) activeRealmIcon.textContent = currentRealm.icon;
+    if (activeRealmName) activeRealmName.textContent = currentRealm.name;
+    const realmLessons = allLessons.filter(l => l.id >= currentRealm.start && l.id <= currentRealm.end);
+    const unlockedCount = realmLessons.filter(l => l.id <= highestUnlocked).length;
+    if (activeRealmProgress) activeRealmProgress.textContent = `(${unlockedCount}/15 Unlocked)`;
+
+    // Render 15 Portal Orbs in the current Realm track
+    if (portalTrack) {
+        portalTrack.innerHTML = "";
+        realmLessons.forEach((lesson, index) => {
+            const lessonId = lesson.id;
+            const isUnlocked = lessonId <= highestUnlocked;
+            const isCompleted = lesson.words && lesson.words.every(w => completedWordIds.has(String(w.id)));
+            const isCurrentActive = lessonId === currentLessonNo;
+
+            const orbWrapper = document.createElement("div");
+            orbWrapper.className = "flex-shrink-0 flex flex-col items-center justify-between p-3 rounded-2xl w-32 sm:w-36 transition-all border cursor-pointer";
+
+            if (isCompleted) {
+                orbWrapper.className += " portal-orb portal-completed bg-emerald-50/70 border-emerald-300 text-emerald-900";
+            } else if (isCurrentActive) {
+                orbWrapper.className += " portal-orb portal-active bg-purple-50 border-[#422AD5] text-gray-900";
+            } else if (isUnlocked) {
+                orbWrapper.className += " portal-orb bg-white border-purple-200/80 text-gray-800 hover:border-[#422AD5] hover:bg-purple-50/30";
+            } else {
+                orbWrapper.className += " portal-orb portal-locked bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed";
+            }
+
+            // Orb Header & Badge
+            const topRow = document.createElement("div");
+            topRow.className = "w-full flex items-center justify-between text-[11px] font-bold";
+            topRow.innerHTML = `
+                <span class="${isCompleted ? "text-emerald-700" : isCurrentActive ? "text-[#422AD5]" : "text-gray-500"}">P-${lessonId}</span>
+                <span>${isCompleted ? "🏆" : isUnlocked ? "⭐" : "🔒"}</span>
+            `;
+
+            // Center Cyber Portal Icon (Glow Sphere)
+            const sphere = document.createElement("div");
+            sphere.className = `w-12 h-12 my-2 rounded-2xl flex items-center justify-center text-lg font-black shadow-xs transition-transform ${
+                isCompleted
+                    ? "bg-emerald-500 text-white shadow-emerald-500/30"
+                    : isCurrentActive
+                    ? "bg-[#422AD5] text-white shadow-lg shadow-[#422AD5]/30 scale-105"
+                    : isUnlocked
+                    ? "bg-purple-100 text-[#422AD5] hover:scale-105"
+                    : "bg-gray-200 text-gray-400 border border-gray-300/60"
+            }`;
+            sphere.textContent = lessonId;
+
+            // Bottom Title & Bangla Topic
+            const label = document.createElement("div");
+            label.className = "text-center w-full";
+            label.innerHTML = `
+                <div class="text-xs font-bold truncate ${isCurrentActive ? "text-[#422AD5]" : isUnlocked ? "text-gray-800" : "text-gray-400"}">${escapeHTML(lesson.title)}</div>
+                <div class="text-[10px] ${isCompleted ? "text-emerald-600" : "text-gray-500"} truncate mt-0.5">${escapeHTML(lesson.bnTitle || "")}</div>
+            `;
+
+            orbWrapper.append(topRow, sphere, label);
+
+            orbWrapper.addEventListener("click", () => {
+                if (!isUnlocked) {
+                    Swal.fire({
+                        icon: "info",
+                        title: `Portal ${lessonId} ফ্রোজেন বা লক করা রয়েছে 🔒`,
+                        text: `এই পোর্টালে ঢুকতে আগে Portal ${lessonId - 1}-এর শব্দগুলো সম্পন্ন করুন।`,
+                        confirmButtonColor: "#422AD5",
+                        confirmButtonText: "ঠিক আছে"
+                    });
+                    return;
+                }
+                document.getElementById("nothing").style.display = "none";
+                loadLesson(lessonId);
+                displays(allLessons);
+            });
+
+            portalTrack.append(orbWrapper);
+        });
     }
 
     if (window.pendingDefaultLesson) {
@@ -437,11 +494,12 @@ const loadLesson = (id) => {
             renderLessonItems();
             updateLessonBanner(found);
 
-            // Highlight active button
-            document.querySelectorAll("#btn-container button, #mobile-lesson-container button").forEach(btn => {
-                const isActive = Number(btn.dataset.levelNo) === currentLessonNo;
-                btn.classList.toggle("active", isActive);
-            });
+            // Auto switch active realm tab if lesson is in another realm
+            const matchingRealm = GAME_REALMS.find(r => currentLessonNo >= r.start && currentLessonNo <= r.end);
+            if (matchingRealm && activeRealmId !== matchingRealm.id) {
+                activeRealmId = matchingRealm.id;
+            }
+            displays(LESSONS_DATABASE);
             return;
         }
     }
