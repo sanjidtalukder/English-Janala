@@ -18,31 +18,48 @@ Vocabulary acquisition remains one of the most critical bottlenecks in second-la
 
 The application is architected around a high-performance, non-blocking asynchronous event loop with strong separation of concerns across the Client Tier, Application Server Tier, Persistence Layer, and External Intelligence APIs.
 
-```
-+-----------------------------------------------------------------------------------+
-|                                CLIENT TIER (Browser)                             |
-|  - HTML5 Semantic Document Structure + CSS3 (Tailwind CSS + DaisyUI)             |
-|  - Vanilla ES6+ Client Engine (No heavy frontend bundle overhead)                 |
-|  - Mobile-First Adaptive Viewport System (Dynamic Hamburger Collapse Architecture) |
-|  - Web Speech API + Native Audio Synthesis Buffer                                 |
-+-----------------------------------------------------------------------------------+
-                                        |  (Secure HTTP / REST / JSON)
-                                        v
-+-----------------------------------------------------------------------------------+
-|                           APPLICATION SERVER (Node.js)                            |
-|  - Zero-Dependency Native Runtime (`node:http`, `node:crypto`, `node:fs`)         |
-|  - Cryptographic Session Handling & Secure HttpOnly Token Masking                 |
-|  - 24-Hour In-Memory & LRU Lexical Caching Gateway                                |
-|  - Reverse-Proxy for Third-Party APIs (Eliminating CORS & Private Key Leakage)   |
-+-----------------------------------------------------------------------------------+
-        |                                       |                           |
-        v                                       v                           v
-+-----------------------+   +-------------------------------+   +-----------------------+
-|  PERSISTENCE TIER     |   |    AI & CONTEXT ENGINE        |   |   LEXICAL REPOSITORIES|
-|  Supabase PostgreSQL  |   |    OpenAI Responses Engine    |   |  Wiktionary REST API  |
-|  Row Level Security   |   |   3 Dynamic Context Sentences |   |  Datamuse Synonyms    |
-|  PL/pgSQL Trigger Func|   |   4-Turn Conversational Model |   |  Programming Hero API |
-+-----------------------+   +-------------------------------+   +-----------------------+
+```mermaid
+graph TD
+    subgraph ClientTier ["🖥️ CLIENT TIER (Browser / Responsive Viewports)"]
+        UI["Semantic UI: HTML5 + CSS3 (Tailwind CSS & DaisyUI)"]
+        MobileNav["Mobile-First Engine (3-Line Hamburger Accordion Navigation)"]
+        AudioBuffer["Web Speech API & Audio Synthesis Buffer"]
+        ClientCore["Vanilla ES6+ Engine (Zero-Bundle Overhead, Reactive DOM)"]
+    end
+
+    subgraph GatewayTier ["⚙️ APPLICATION SERVER (Node.js REST Gateway)"]
+        Server["Pure Node.js Asynchronous HTTP Engine (node:http)"]
+        Security["Auth & Cookie Shield (HttpOnly / SameSite Cryptographic Session)"]
+        Cache["LRU & Memory Caching Layer (24h Lexical TTL)"]
+        ReverseProxy["Secure Reverse-Proxy (CORS Elimination & Secret Masking)"]
+    end
+
+    subgraph DataTier ["🗄️ PERSISTENCE LAYER (Supabase Cloud)"]
+        Postgres[("PostgreSQL Relational DB")]
+        RLS["Row Level Security (RLS) Tenant Isolation"]
+        Schema["Tables: word_progress, saved_words, study_activity, user_settings"]
+        Triggers["PL/pgSQL Trigger Functions (Automated Timestamps)"]
+    end
+
+    subgraph AITier ["🧠 CONTEXT & INTELLIGENCE ENGINE"]
+        OpenAI["OpenAI LLM Engine (Responses API)"]
+        ContextService["Contextual Practice: 3 Sentences + 4-Turn Dialogue Model"]
+    end
+
+    subgraph LexicalTier ["📚 GLOBAL LEXICAL KNOWLEDGE GRAPH"]
+        Wiktionary["Wiktionary REST API (Definitions, Phonetics, Audio)"]
+        Datamuse["Datamuse API (Contextual Synonyms & Antonyms)"]
+        Curriculum["Programming Hero Curriculum OpenAPI"]
+    end
+
+    %% Data Flow Connections
+    ClientTier -->|"HTTPS / Secure REST JSON Requests"| GatewayTier
+    GatewayTier -->|"PostgREST API with Bearer JWT"| DataTier
+    GatewayTier -->|"Internal Private Prompting"| AITier
+    GatewayTier -->|"Lexical Aggregation & Fallback"| LexicalTier
+    DataTier -.->|"Secured Multi-Tenant Recordsets"| GatewayTier
+    AITier -.->|"Structured JSON Sentences & Dialogues"| GatewayTier
+    LexicalTier -.->|"Cached Lexical Schema"| GatewayTier
 ```
 
 ---
